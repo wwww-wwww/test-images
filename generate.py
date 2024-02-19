@@ -9,24 +9,6 @@ outfolder = "images"
 
 font = ImageFont.truetype("arial.ttf", 256)
 
-cmyk = Image.new("CMYK", (2048, 2048), (0, 0, 0, 0))
-draw = ImageDraw.Draw(cmyk)
-
-draw.text((64, 1024 + 64), "C", fill=(255, 0, 0, 0), font=font)
-draw.text((64 + font.getlength("C"), 1024 + 64),
-          "M",
-          fill=(0, 255, 0, 0),
-          font=font)
-draw.text((64 + font.getlength("CM"), 1024 + 64),
-          "Y",
-          fill=(0, 0, 255, 0),
-          font=font)
-draw.text((64 + font.getlength("CMY"), 1024 + 64),
-          "K",
-          fill=(0, 0, 0, 255),
-          font=font)
-cmyks = cmyk.copy()
-
 im = Image.new("RGBA", (2048, 2048), (255, 255, 255, 255))
 draw = ImageDraw.Draw(im)
 draw.text((64, 768 + 64), "R", fill=(255, 0, 0), font=font)
@@ -91,7 +73,6 @@ formats = [
     ("YCbCr444", "JPEG", "RGB", f"{cjpeg} -outfile $2.jpg -sample 1x1 -progressive $1"),
     ("XYB", "JPEG jpegli", "RGB", f"cjpegli $1 --xyb $2.jpg"),
     ("CMYK", "JPEG", "RGB", f"convert $1 -colorspace CMYK $2.jpg"),
-    ("CMYK", "JPEG", "RGB"),
     ("L", "JPEG", "L", f"{cjpeg} -outfile $2.jpg -grayscale -progressive $1"),
     ("YCbCr420", "JXL_JPEG", "RGB", f"{cjpeg} -outfile $2.jpg -progressive $1 && cjxl $2.jpg --lossless_jpeg=1 $2.jxl && rm $2.jpg"),
     ("L", "JXL_JPEG", "L", f"{cjpeg} -outfile $2.jpg -grayscale -progressive $1 && cjxl $2.jpg --lossless_jpeg=1 $2.jxl && rm $2.jpg"),
@@ -113,18 +94,12 @@ for fs in formats:
     [color, fmt, colormode] = fs
     cmd = None
 
-  #if color == "CMYK":
-  #  im = cmyks.copy()
-  #else:
   im = ims.copy()
 
   draw = ImageDraw.Draw(im)
   draw.text((64, 64), fmt, fill=(0, 0, 0), font=font)
   draw.text((64, 256 + 64), color, fill=(0, 0, 0), font=font)
 
-  #if color == "CMYK":
-  #  im.save(os.path.join(outfolder, f"{fmt}.{color}.jpg"))
-  #else:
   im.convert(colormode).save(os.path.join(outfolder, f"{fmt}.{color}.png"))
 
   if cmd:
