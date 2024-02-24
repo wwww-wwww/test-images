@@ -24,8 +24,8 @@ int main() {
   jpeg_create_decompress(&jinfo);
 
   printf("reading\n");
-  // std::ifstream infile("images/JPEG.CMYK no ICC.jpg");
-  std::ifstream infile("images/JPEG.L.jpg");
+
+  std::ifstream infile("JPEG.RGB.1.jpg");
 
   infile.seekg(0, std::ios::end);
   size_t size = infile.tellg();
@@ -41,7 +41,30 @@ int main() {
   jpeg_read_header(&jinfo, true);
 
   printf("size %d %d\n", jinfo.image_width, jinfo.image_height);
-  printf("cmyk %d\n", jinfo.jpeg_color_space == JCS_CMYK);
+  printf("colorspace %d ", jinfo.jpeg_color_space);
+  switch (jinfo.jpeg_color_space) {
+  case JCS_UNKNOWN:
+    printf("JCS_UNKNOWN\n");
+    break;
+  case JCS_GRAYSCALE:
+    printf("JCS_GRAYSCALE\n");
+    break;
+  case JCS_RGB:
+    printf("JCS_RGB\n");
+    break;
+  case JCS_YCbCr:
+    printf("JCS_YCbCr\n");
+    break;
+  case JCS_CMYK:
+    printf("JCS_CMYK\n");
+    break;
+  case JCS_YCCK:
+    printf("JCS_YCCK\n");
+    break;
+  default:
+    printf("UNKNOWN\n");
+    break;
+  }
 
   jinfo.out_color_space = JCS_GRAYSCALE;
 
