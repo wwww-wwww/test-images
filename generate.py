@@ -3,14 +3,16 @@ import numpy as np
 import subprocess
 import os
 import cv2
+import time
 
-cjpeg = "/opt/mozjpeg/bin/cjpeg"
-cjpeg = "~/encoding/mozjpeg/build/cjpeg"
+cjpeg = "/opt/mozjpeg/bin/cjpeg -quality 99 -progressive"
+cjpeg = "~/encoding/mozjpeg/build/cjpeg -quality 99 -progressive"
 outfolder = "images"
 
-gbricc = "magick $1 +profile icm -profile sRGB.icm -profile gbr.icc"
+gbricc = "magick $1 +profile icm -profile icc/sRGB.icm -profile icc/gbr.icc"
+gray10icc = 'magick $1 +profile icm -profile "icc/Gray Gamma 22.icc" -profile "icc/Gray Gamma 10.icc"'
 
-scale = 1
+scale = 0.25
 if scale < 1:
   small = ".small"
 else:
@@ -18,12 +20,19 @@ else:
 
 font = ImageFont.truetype("arial.ttf", 512 * scale)
 font2 = ImageFont.truetype("arial.ttf", 256 * scale)
+font3 = ImageFont.truetype("arial.ttf", 128 * scale)
 
 h = int(128 * scale)
 w = int(4096 * scale)
 
 im = Image.new("RGBA", (w, w), (255, 255, 255, 255))
 draw = ImageDraw.Draw(im)
+
+draw.text((128 * scale, 64 * scale),
+          str(int(time.time())),
+          fill=(0, 0, 0),
+          font=font3)
+
 draw.text((h, 1280 * scale + h), "R", fill=(255, 0, 0), font=font)
 draw.text((h + font.getlength("R"), 1280 * scale + h),
           "G",
@@ -89,19 +98,19 @@ im[y - h * 1:y - h * 0, h + s:h + s * 2, 0] = gradc
 im[y - h * 1:y - h * 0, h + s:h + s * 2, 1] = gradc
 im[y - h * 1:y - h * 0, h + s:h + s * 2, 2] = gradc
 
-im[y - h * 1 + 0:y - h * 0:4, h + s + 0:h + s * 2:4, 0:3] = 0
-im[y - h * 1 + 0:y - h * 0:4, h + s + 1:h + s * 2:4, 0:3] = 0
-im[y - h * 1 + 1:y - h * 0:4, h + s + 0:h + s * 2:4, 0:3] = 0
-im[y - h * 1 + 1:y - h * 0:4, h + s + 1:h + s * 2:4, 0:3] = 0
+im[y - h * 1 + 0:y - h * 0:4, h + s + 0:h + s * 2:4, 0:3] = 255
+im[y - h * 1 + 0:y - h * 0:4, h + s + 1:h + s * 2:4, 0:3] = 255
+im[y - h * 1 + 1:y - h * 0:4, h + s + 0:h + s * 2:4, 0:3] = 255
+im[y - h * 1 + 1:y - h * 0:4, h + s + 1:h + s * 2:4, 0:3] = 255
 
 im[y - h * 1:y - h * 0, h + s * 2:h + s * 3, 0] = gradc
 im[y - h * 1:y - h * 0, h + s * 2:h + s * 3, 1] = gradc
 im[y - h * 1:y - h * 0, h + s * 2:h + s * 3, 2] = gradc
 
-im[y - h * 1 + 0:y - h * 0:4, h + s * 2 + 0:h + s * 3:4, 0:3] = 255
-im[y - h * 1 + 0:y - h * 0:4, h + s * 2 + 1:h + s * 3:4, 0:3] = 255
-im[y - h * 1 + 1:y - h * 0:4, h + s * 2 + 0:h + s * 3:4, 0:3] = 255
-im[y - h * 1 + 1:y - h * 0:4, h + s * 2 + 1:h + s * 3:4, 0:3] = 255
+im[y - h * 1 + 0:y - h * 0:4, h + s * 2 + 0:h + s * 3:4, 0:3] = 0
+im[y - h * 1 + 0:y - h * 0:4, h + s * 2 + 1:h + s * 3:4, 0:3] = 0
+im[y - h * 1 + 1:y - h * 0:4, h + s * 2 + 0:h + s * 3:4, 0:3] = 0
+im[y - h * 1 + 1:y - h * 0:4, h + s * 2 + 1:h + s * 3:4, 0:3] = 0
 # colors
 
 im[y + h * 0:y + h * 1, h:-h, 0:3] = 0
@@ -163,43 +172,69 @@ formats = [
     ("RGB", "PNG", "RGB"),
     ("RGB gbr", "PNG", "RGB", f"{gbricc} $1", "png", True),
     ("LA", "PNG", "LA"),
+    ("LA gamma 10", "PNG", "LA", f"{gray10icc} $1", "png", True),
+    ("LA gamma 10 wrong", "PNG", "LA", f"{gray10icc} $1 && exiftool -all= $1 && rm $1_original", "png", True),
     ("L", "PNG", "L"),
-    ("RGB", "JPEG", "RGB", f"{cjpeg} -outfile $2.jpg -rgb -progressive $1"),
+    ("L gamma 10", "PNG", "L", f"{gray10icc} $1", "png", True),
+
+    ("RGB", "JPEG", "RGB", f"{cjpeg} -outfile $2.jpg -rgb $1"),
     ("YCbCr444 gbr", "JPEG", "RGB", f"{gbricc} $2.jpg", "png", False),
-    ("YCbCr420", "JPEG", "RGB", f"{cjpeg} -outfile $2.jpg -progressive $1"),
-    ("YCbCr422", "JPEG", "RGB", f"{cjpeg} -outfile $2.jpg -sample 2x1 -progressive $1"),
-    ("YCbCr440", "JPEG", "RGB", f"{cjpeg} -outfile $2.jpg -sample 1x2 -progressive $1"),
-    ("YCbCr444", "JPEG", "RGB", f"{cjpeg} -outfile $2.jpg -sample 1x1 -progressive $1"),
+    ("YCbCr420", "JPEG", "RGB", f"{cjpeg} -outfile $2.jpg $1"),
+    ("YCbCr422", "JPEG", "RGB", f"{cjpeg} -outfile $2.jpg -sample 2x1 $1"),
+    ("YCbCr440", "JPEG", "RGB", f"{cjpeg} -outfile $2.jpg -sample 1x2 $1"),
+    ("YCbCr444", "JPEG", "RGB", f"{cjpeg} -outfile $2.jpg -sample 1x1 $1"),
     ("XYB", "JPEG jpegli", "RGB", f"cjpegli $1 --xyb $2.jpg"),
-    ("YCCK", "JPEG", "RGB", f"convert $1 -colorspace CMYK $2.jpg && exiftool \"-icc_profile<=USWebCoatedSWOP.icc\" $2.jpg && rm $2.jpg_original"),
-    ("CMYK", "JPEG", "CMYK", "exiftool \"-icc_profile<=USWebCoatedSWOP.icc\" $1 && rm $1_original", "jpg", True),
+    ("L", "JPEG", "L", f"{cjpeg} -outfile $2.jpg -grayscale $1"),
+    ("L gamma 10", "JPEG", "L", f"{gray10icc} $1 && {cjpeg} -outfile $2.jpg -grayscale $1 && exiftool \"-icc_profile<=icc/Gray Gamma 10.icc\" $2.jpg && rm $2.jpg_original"),
+
+    ("YCCK", "JPEG", "RGB", f"convert $1 -colorspace CMYK $2.jpg && exiftool \"-icc_profile<=icc/USWebCoatedSWOP.icc\" $2.jpg && rm $2.jpg_original"),
     ("YCCK no ICC", "JPEG", "RGB", f"convert $1 -colorspace CMYK $2.jpg"),
+    ("CMYK", "JPEG", "CMYK", "exiftool \"-icc_profile<=icc/USWebCoatedSWOP.icc\" $1 && rm $1_original", "jpg", True),
+    ("CMYK wide", "JPEG", "CMYK", "exiftool \"-icc_profile<=icc/Wide Gamut CMYK Simulation.icc\" $1 && rm $1_original", "jpg", True),
     ("CMYK no ICC", "JPEG", "CMYK", None, "jpg", True),
-    ("L", "JPEG", "L", f"{cjpeg} -outfile $2.jpg -grayscale -progressive $1"),
+
     ("RGBA", "WEBP", "RGBA", "cwebp $1 -o $2.webp"),
     ("RGBA gbr", "WEBP", "RGBA", f"{gbricc} $2.webp"),
-    ("RGBA", "WEBP_LOSSLESS", "RGBA", "cwebp $1 -lossless -o $2.webp"),
     ("RGB", "WEBP", "RGB", "cwebp $1 -o $2.webp"),
-    ("RGB", "WEBP_LOSSLESS", "RGB", "cwebp $1 -lossless -o $2.webp"),
+    ("RGB gbr", "WEBP", "RGB", f"{gbricc} $2.webp"),
     ("L", "WEBP", "L", "cwebp $1 -o $2.webp"),
-    ("L", "WEBP_LOSSLESS", "L", "cwebp $1 -lossless -o $2.webp"),
+    ("L gamma 10", "WEBP", "L", f"{gray10icc} $2.webp"),
     ("LA", "WEBP", "LA", "cwebp $1 -o $2.webp"),
+    ("LA gamma 10", "WEBP", "LA", f"{gray10icc} $2.webp"),
+
+    ("RGBA", "WEBP_LOSSLESS", "RGBA", "cwebp $1 -lossless -o $2.webp"),
+    ("RGB", "WEBP_LOSSLESS", "RGB", "cwebp $1 -lossless -o $2.webp"),
+    ("L", "WEBP_LOSSLESS", "L", "cwebp $1 -lossless -o $2.webp"),
     ("LA", "WEBP_LOSSLESS", "LA", "cwebp $1 -lossless -o $2.webp"),
+
     ("RGBA", "AVIF", "RGBA", "avifenc $1 -o $2.avif"),
     #("RGBA gbr", "AVIF", "RGBA", f"{gbricc} $2.avif"),
     ("RGB", "AVIF", "RGB", "avifenc $1 -o $2.avif"),
     ("L", "AVIF", "L", "avifenc $1 -o $2.avif"),
     ("LA", "AVIF", "LA", "avifenc $1 -o $2.avif"),
-    ("YCbCr420", "JXL_JPEG", "RGB", f"{cjpeg} -outfile $2.jpg -progressive $1 && cjxl $2.jpg --lossless_jpeg=1 $2.jxl && rm $2.jpg"),
-    ("L", "JXL_JPEG", "L", f"{cjpeg} -outfile $2.jpg -grayscale -progressive $1 && cjxl $2.jpg --lossless_jpeg=1 $2.jxl && rm $2.jpg"),
+
+    ("YCbCr420", "JXL_JPEG", "RGB", f"{cjpeg} -outfile $2.jpg $1 && cjxl $2.jpg --lossless_jpeg=1 $2.jxl && rm $2.jpg"),
+    ("YCbCr420 gbr", "JXL_JPEG", "RGB", f"{gbricc} $2.jpg && cjxl $2.jpg --lossless_jpeg=1 $2.jxl && rm $2.jpg"),
+    ("L", "JXL_JPEG", "L", f"{cjpeg} -outfile $2.jpg -grayscale $1 && cjxl $2.jpg --lossless_jpeg=1 $2.jxl && rm $2.jpg"),
+    ("L gamma 10", "JXL_JPEG", "L", f"{gray10icc} $1 && {cjpeg} -outfile $2.jpg -grayscale $1 && exiftool \"-icc_profile<=icc/Gray Gamma 10.icc\" $2.jpg && rm $2.jpg_original && cjxl $2.jpg --lossless_jpeg=1 $2.jxl && rm $2.jpg"),
+
     ("RGB", "JXL_VarDCT", "RGB", "cjxl $1 $2.jxl"),
+    ("RGB gbr", "JXL_VarDCT", "RGB", f"{gbricc} $1 && cjxl $1 $2.jxl"),
     ("RGBA", "JXL_VarDCT", "RGBA", "cjxl $1 $2.jxl"),
+    ("RGBA gbr", "JXL_VarDCT", "RGBA", f"{gbricc} $1 && cjxl $1 $2.jxl"),
     ("LA", "JXL_VarDCT", "LA", "cjxl $1 $2.jxl"),
+    ("LA gamma 10", "JXL_VarDCT", "LA", f"{gray10icc} $1 && cjxl $1 $2.jxl"),
     ("L", "JXL_VarDCT", "L", "cjxl $1 $2.jxl"),
+    ("L gamma 10", "JXL_VarDCT", "L", f"{gray10icc} $1 && cjxl $1 $2.jxl"),
+
     ("RGB", "JXL_Modular", "RGB", "cjxl $1 --modular=1 $2.jxl"),
+    ("RGB gbr", "JXL_Modular", "RGB", f"{gbricc} $1 && cjxl $1 --modular=1 $2.jxl"),
     ("RGBA", "JXL_Modular", "RGBA", "cjxl $1 --modular=1 $2.jxl"),
+    ("RGBA gbr", "JXL_Modular", "RGBA", f"{gbricc} $1 && cjxl $1 --modular=1 $2.jxl"),
     ("LA", "JXL_Modular", "LA", "cjxl $1 --modular=1 $2.jxl"),
+    ("LA gamma 10", "JXL_Modular", "LA", f"{gray10icc} $1 && cjxl $1 --modular=1 $2.jxl"),
     ("L", "JXL_Modular", "L", "cjxl $1 --modular=1 $2.jxl"),
+    ("L gamma 10", "JXL_Modular", "L", f"{gray10icc} $1 && cjxl $1 --modular=1 $2.jxl"),
 ]
 # yapf: enable
 
@@ -225,12 +260,14 @@ for fs in formats:
   if scale < 1:
     draw.text((h, h + 1024 * scale), "small", fill=(0, 0, 0), font=font2)
 
-  im.convert(colormode).save(os.path.join(outfolder, f"{fmt}.{color}{small}.{ext}"))
+  im.convert(colormode).save(
+      os.path.join(outfolder, f"{fmt}.{color}{small}.{ext}"))
 
   if cmd:
-    cmdr = cmd.replace("$1", os.path.join(outfolder,
-                                          f"\"{fmt}.{color}{small}.{ext}\""))
-    cmdr = cmdr.replace("$2", os.path.join(outfolder, f"\"{fmt}.{color}{small}\""))
+    cmdr = cmd.replace(
+        "$1", os.path.join(outfolder, f"\"{fmt}.{color}{small}.{ext}\""))
+    cmdr = cmdr.replace("$2",
+                        os.path.join(outfolder, f"\"{fmt}.{color}{small}\""))
     if subprocess.run(cmdr, shell=True).returncode != 0: exit(1)
     if not keep:
       os.remove(os.path.join(outfolder, f"{fmt}.{color}{small}.{ext}"))
