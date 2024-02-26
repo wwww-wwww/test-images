@@ -13,7 +13,7 @@ gbricc = "magick $1 +profile icm -profile icc/sRGB.icm -profile icc/gbr.icc"
 gray10icc = 'magick $1 +profile icm -profile "icc/Gray Gamma 22.icc" -profile "icc/Gray Gamma 10.icc"'
 
 scale = 4095 / 4096  #1
-#scale = 0.25  #1
+scale = 0.25  #1
 if scale < 0.8:
   small = ".small"
 else:
@@ -229,19 +229,19 @@ formats = [
     ("L", "JXL_JPEG", "L", f"{cjpeg} -outfile $2.jpg -grayscale $1 && cjxl $2.jpg --lossless_jpeg=1 $2.jxl && rm $2.jpg"),
     ("L gamma 10", "JXL_JPEG", "L", f"{gray10icc} $1 && {cjpeg} -outfile $2.jpg -grayscale $1 && exiftool \"-icc_profile<=icc/Gray Gamma 10.icc\" $2.jpg && rm $2.jpg_original && cjxl $2.jpg --lossless_jpeg=1 $2.jxl && rm $2.jpg"),
 
-    ("RGB", "JXL_VarDCT", "RGB", "cjxl $1 $2.jxl"),
-    ("RGB gbr", "JXL_VarDCT", "RGB", f"{gbricc} $1 && cjxl $1 $2.jxl"),
     ("RGBA", "JXL_VarDCT", "RGBA", "cjxl $1 $2.jxl"),
     ("RGBA gbr", "JXL_VarDCT", "RGBA", f"{gbricc} $1 && cjxl $1 $2.jxl"),
+    ("RGB", "JXL_VarDCT", "RGB", "cjxl $1 $2.jxl"),
+    ("RGB gbr", "JXL_VarDCT", "RGB", f"{gbricc} $1 && cjxl $1 $2.jxl"),
     ("LA", "JXL_VarDCT", "LA", "cjxl $1 $2.jxl"),
     ("LA gamma 10", "JXL_VarDCT", "LA", f"{gray10icc} $1 && cjxl $1 $2.jxl"),
     ("L", "JXL_VarDCT", "L", "cjxl $1 $2.jxl"),
     ("L gamma 10", "JXL_VarDCT", "L", f"{gray10icc} $1 && cjxl $1 $2.jxl"),
 
-    ("RGB", "JXL_Modular", "RGB", "cjxl $1 --modular=1 $2.jxl"),
-    ("RGB gbr", "JXL_Modular", "RGB", f"{gbricc} $1 && cjxl $1 --modular=1 $2.jxl"),
     ("RGBA", "JXL_Modular", "RGBA", "cjxl $1 --modular=1 $2.jxl"),
     ("RGBA gbr", "JXL_Modular", "RGBA", f"{gbricc} $1 && cjxl $1 --modular=1 $2.jxl"),
+    ("RGB", "JXL_Modular", "RGB", "cjxl $1 --modular=1 $2.jxl"),
+    ("RGB gbr", "JXL_Modular", "RGB", f"{gbricc} $1 && cjxl $1 --modular=1 $2.jxl"),
     ("LA", "JXL_Modular", "LA", "cjxl $1 --modular=1 $2.jxl"),
     ("LA gamma 10", "JXL_Modular", "LA", f"{gray10icc} $1 && cjxl $1 --modular=1 $2.jxl"),
     ("L", "JXL_Modular", "L", "cjxl $1 --modular=1 $2.jxl"),
@@ -252,7 +252,7 @@ formats = [
 #print(len(formats))
 #exit()
 
-for i, fs in enumerate(formats, 68):
+for i, fs in enumerate(formats, 0):
   if len(fs) == 6:
     [color, fmt, colormode, cmd, ext, keep] = fs
   else:
