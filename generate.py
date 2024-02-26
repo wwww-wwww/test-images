@@ -12,8 +12,9 @@ outfolder = "images"
 gbricc = "magick $1 +profile icm -profile icc/sRGB.icm -profile icc/gbr.icc"
 gray10icc = 'magick $1 +profile icm -profile "icc/Gray Gamma 22.icc" -profile "icc/Gray Gamma 10.icc"'
 
-scale = 0.25
-if scale < 1:
+scale = 4095 / 4096  #1
+#scale = 0.25  #1
+if scale < 0.8:
   small = ".small"
 else:
   small = ""
@@ -173,9 +174,17 @@ formats = [
     ("RGB gbr", "PNG", "RGB", f"{gbricc} $1", "png", True),
     ("LA", "PNG", "LA"),
     ("LA gamma 10", "PNG", "LA", f"{gray10icc} $1", "png", True),
-    ("LA gamma 10 wrong", "PNG", "LA", f"{gray10icc} $1 && exiftool -all= $1 && rm $1_original", "png", True),
     ("L", "PNG", "L"),
     ("L gamma 10", "PNG", "L", f"{gray10icc} $1", "png", True),
+
+    ("RGBA", "PNG_Adam7", "RGBA", f"magick -interlace PNG $1 $1", "png", True),
+    ("RGBA gbr", "PNG_Adam7", "RGBA", f"{gbricc} -interlace PNG $1", "png", True),
+    ("RGB", "PNG_Adam7", "RGB", f"magick -interlace PNG $1 $1", "png", True),
+    ("RGB gbr", "PNG_Adam7", "RGB", f"{gbricc} $1", "png", True),
+    ("LA", "PNG_Adam7", "LA", f"magick -interlace PNG $1 $1", "png", True),
+    ("LA gamma 10", "PNG_Adam7", "LA", f"{gray10icc} -interlace PNG $1", "png", True),
+    ("L", "PNG_Adam7", "L", f"magick -interlace PNG $1 $1", "png", True),
+    ("L gamma 10", "PNG_Adam7", "L", f"{gray10icc} -interlace PNG $1", "png", True),
 
     ("RGB", "JPEG", "RGB", f"{cjpeg} -outfile $2.jpg -rgb $1"),
     ("YCbCr444 gbr", "JPEG", "RGB", f"{gbricc} $2.jpg", "png", False),
@@ -187,8 +196,8 @@ formats = [
     ("L", "JPEG", "L", f"{cjpeg} -outfile $2.jpg -grayscale $1"),
     ("L gamma 10", "JPEG", "L", f"{gray10icc} $1 && {cjpeg} -outfile $2.jpg -grayscale $1 && exiftool \"-icc_profile<=icc/Gray Gamma 10.icc\" $2.jpg && rm $2.jpg_original"),
 
-    ("YCCK", "JPEG", "RGB", f"convert $1 -colorspace CMYK $2.jpg && exiftool \"-icc_profile<=icc/USWebCoatedSWOP.icc\" $2.jpg && rm $2.jpg_original"),
-    ("YCCK no ICC", "JPEG", "RGB", f"convert $1 -colorspace CMYK $2.jpg"),
+    ("YCCK", "JPEG", "RGB", f"magick $1 -colorspace CMYK $2.jpg && exiftool \"-icc_profile<=icc/USWebCoatedSWOP.icc\" $2.jpg && rm $2.jpg_original"),
+    ("YCCK no ICC", "JPEG", "RGB", f"magick $1 -colorspace CMYK $2.jpg"),
     ("CMYK", "JPEG", "CMYK", "exiftool \"-icc_profile<=icc/USWebCoatedSWOP.icc\" $1 && rm $1_original", "jpg", True),
     ("CMYK wide", "JPEG", "CMYK", "exiftool \"-icc_profile<=icc/Wide Gamut CMYK Simulation.icc\" $1 && rm $1_original", "jpg", True),
     ("CMYK no ICC", "JPEG", "CMYK", None, "jpg", True),
@@ -197,21 +206,23 @@ formats = [
     ("RGBA gbr", "WEBP", "RGBA", f"{gbricc} $2.webp"),
     ("RGB", "WEBP", "RGB", "cwebp $1 -o $2.webp"),
     ("RGB gbr", "WEBP", "RGB", f"{gbricc} $2.webp"),
-    ("L", "WEBP", "L", "cwebp $1 -o $2.webp"),
-    ("L gamma 10", "WEBP", "L", f"{gray10icc} $2.webp"),
     ("LA", "WEBP", "LA", "cwebp $1 -o $2.webp"),
-    ("LA gamma 10", "WEBP", "LA", f"{gray10icc} $2.webp"),
+    ("L", "WEBP", "L", "cwebp $1 -o $2.webp"),
+    # webp doesn't support grayscale
 
     ("RGBA", "WEBP_LOSSLESS", "RGBA", "cwebp $1 -lossless -o $2.webp"),
     ("RGB", "WEBP_LOSSLESS", "RGB", "cwebp $1 -lossless -o $2.webp"),
-    ("L", "WEBP_LOSSLESS", "L", "cwebp $1 -lossless -o $2.webp"),
     ("LA", "WEBP_LOSSLESS", "LA", "cwebp $1 -lossless -o $2.webp"),
+    ("L", "WEBP_LOSSLESS", "L", "cwebp $1 -lossless -o $2.webp"),
 
     ("RGBA", "AVIF", "RGBA", "avifenc $1 -o $2.avif"),
-    #("RGBA gbr", "AVIF", "RGBA", f"{gbricc} $2.avif"),
+    ("RGBA gbr", "AVIF", "RGBA", f"{gbricc} $2.avif"),
     ("RGB", "AVIF", "RGB", "avifenc $1 -o $2.avif"),
+    ("RGB gbr", "AVIF", "RGB", f"{gbricc} $2.avif"),
+    ("LA", "AVIF", "LA", "avifenc $1 -o  $2.avif"),
+    ("LA gamma 10", "AVIF", "LA", f"{gray10icc} $2.avif"),
     ("L", "AVIF", "L", "avifenc $1 -o $2.avif"),
-    ("LA", "AVIF", "LA", "avifenc $1 -o $2.avif"),
+    ("L gamma 10", "AVIF", "L", f"{gray10icc} $2.avif"),
 
     ("YCbCr420", "JXL_JPEG", "RGB", f"{cjpeg} -outfile $2.jpg $1 && cjxl $2.jpg --lossless_jpeg=1 $2.jxl && rm $2.jpg"),
     ("YCbCr420 gbr", "JXL_JPEG", "RGB", f"{gbricc} $2.jpg && cjxl $2.jpg --lossless_jpeg=1 $2.jxl && rm $2.jpg"),
@@ -238,7 +249,10 @@ formats = [
 ]
 # yapf: enable
 
-for fs in formats:
+#print(len(formats))
+#exit()
+
+for i, fs in enumerate(formats, 68):
   if len(fs) == 6:
     [color, fmt, colormode, cmd, ext, keep] = fs
   else:
@@ -257,20 +271,21 @@ for fs in formats:
   draw.text((h, h), fmt, fill=(0, 0, 0), font=font)
   draw.text((h, 512 * scale + h), color, fill=(0, 0, 0), font=font)
 
-  if scale < 1:
+  if scale < 0.8:
     draw.text((h, h + 1024 * scale), "small", fill=(0, 0, 0), font=font2)
 
-  im.convert(colormode).save(
-      os.path.join(outfolder, f"{fmt}.{color}{small}.{ext}"))
+  im.convert(colormode).save(os.path.join(outfolder, f"{i:03d}.{ext}"))
+  #os.path.join(outfolder, f"{fmt}.{color}{small}.{ext}"))
 
   if cmd:
-    cmdr = cmd.replace(
-        "$1", os.path.join(outfolder, f"\"{fmt}.{color}{small}.{ext}\""))
-    cmdr = cmdr.replace("$2",
-                        os.path.join(outfolder, f"\"{fmt}.{color}{small}\""))
+    cmdr = cmd.replace("$1", os.path.join(outfolder, f"\"{i:03d}.{ext}\""))
+    #"$1", os.path.join(outfolder, f"\"{fmt}.{color}{small}.{ext}\""))
+    cmdr = cmdr.replace("$2", os.path.join(outfolder, f"\"{i:03d}\""))
+    #os.path.join(outfolder, f"\"{fmt}.{color}{small}\""))
     if subprocess.run(cmdr, shell=True).returncode != 0: exit(1)
     if not keep:
-      os.remove(os.path.join(outfolder, f"{fmt}.{color}{small}.{ext}"))
+      os.remove(os.path.join(outfolder, f"{i:03d}.{ext}"))
+      #os.remove(os.path.join(outfolder, f"{fmt}.{color}{small}.{ext}"))
 
   continue
 
