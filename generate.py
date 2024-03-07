@@ -13,7 +13,7 @@ gbricc = "magick $1 +profile icm -profile icc/sRGB.icm -profile icc/gbr.icc"
 gray10icc = 'magick $1 +profile icm -profile "icc/Gray Gamma 22.icc" -profile "icc/Gray Gamma 10.icc"'
 
 scale = 4095 / 4096  #1
-scale = 0.25  #1
+#scale = 1  #1
 if scale < 0.8:
   small = ".small"
 else:
@@ -28,6 +28,11 @@ w = int(4096 * scale)
 
 im = Image.new("RGBA", (w, w), (255, 255, 255, 255))
 draw = ImageDraw.Draw(im)
+
+pepper = Image.open("GIMP_Pepper.png")
+pepper.resize((int(pepper.width * scale), int(pepper.height * scale)))
+
+im.paste(pepper, (int(w * 0.86), int(w * 0.32)), pepper)
 
 draw.text((128 * scale, 64 * scale),
           str(int(time.time())),
