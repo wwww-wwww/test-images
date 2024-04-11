@@ -12,7 +12,7 @@ outfolder = "images"
 gbricc = "magick $1 +profile icm -profile icc/sRGB.icm -profile icc/gbr.icc"
 gray10icc = 'magick $1 +profile icm -profile "icc/Gray Gamma 22.icc" -profile "icc/Gray Gamma 10.icc"'
 
-scale = 4095 / 4096  #1
+scale = 1023 / 4096  #1
 #scale = 1  #1
 if scale < 0.8:
   small = ".small"
@@ -30,8 +30,7 @@ im = Image.new("RGBA", (w, w), (255, 255, 255, 255))
 draw = ImageDraw.Draw(im)
 
 pepper = Image.open("GIMP_Pepper.png")
-pepper.resize((int(pepper.width * scale), int(pepper.height * scale)))
-
+pepper = pepper.resize((int(pepper.width * scale), int(pepper.height * scale)))
 im.paste(pepper, (int(w * 0.86), int(w * 0.32)), pepper)
 
 draw.text((128 * scale, 64 * scale),
@@ -182,6 +181,15 @@ formats = [
     ("L", "PNG", "L"),
     ("L gamma 10", "PNG", "L", f"{gray10icc} $1", "png", True),
 
+    ("RGBA", "PNG64", "RGBA", f"magick $1 PNG64:$1", "png", True),
+    ("RGBA gbr", "PNG64", "RGBA", f"{gbricc} PNG64:$1", "png", True),
+    ("RGB", "PNG48", "RGB", f"magick $1 PNG48:$1", "png", True),
+    ("RGB gbr", "PNG48", "RGB", f"{gbricc} PNG48:$1", "png", True),
+    ("LA", "PNG32", "LA", f"magick $1 -define png:bit-depth=16 -type GrayscaleMatte $1", "png", True),
+    ("LA gamma 10", "PNG32", "LA", f"{gray10icc} -define png:bit-depth=16 -type GrayscaleMatte $1", "png", True),
+    ("L", "PNG16", "L", f"magick $1 -define png:bit-depth=16 -type Grayscale $1", "png", True),
+    ("L gamma 10", "PNG16", "L", f"{gray10icc} -define png:bit-depth=16 -type Grayscale $1", "png", True),
+
     ("RGBA", "PNG_Adam7", "RGBA", f"magick -interlace PNG $1 $1", "png", True),
     ("RGBA gbr", "PNG_Adam7", "RGBA", f"{gbricc} -interlace PNG $1", "png", True),
     ("RGB", "PNG_Adam7", "RGB", f"magick -interlace PNG $1 $1", "png", True),
@@ -190,6 +198,15 @@ formats = [
     ("LA gamma 10", "PNG_Adam7", "LA", f"{gray10icc} -interlace PNG $1", "png", True),
     ("L", "PNG_Adam7", "L", f"magick -interlace PNG $1 $1", "png", True),
     ("L gamma 10", "PNG_Adam7", "L", f"{gray10icc} -interlace PNG $1", "png", True),
+
+    ("RGBA", "PNG64_Adam7", "RGBA", f"magick -interlace PNG $1 PNG64:$1", "png", True),
+    ("RGBA gbr", "PNG64_Adam7", "RGBA", f"{gbricc} -interlace PNG PNG64:$1", "png", True),
+    ("RGB", "PNG64_Adam7", "RGB", f"magick -interlace PNG $1 PNG48:$1", "png", True),
+    ("RGB gbr", "PNG64_Adam7", "RGB", f"{gbricc} PNG48:$1", "png", True),
+    ("LA", "PNG32_Adam7", "LA", f"magick -define png:bit-depth=16 -type GrayscaleMatte -interlace PNG $1 $1", "png", True),
+    ("LA gamma 10", "PNG32_Adam7", "LA", f"{gray10icc} -define png:bit-depth=16 -type GrayscaleMatte -interlace PNG $1", "png", True),
+    ("L", "PNG16_Adam7", "L", f"magick -define png:bit-depth=16 -type Grayscale -interlace PNG $1 $1", "png", True),
+    ("L gamma 10", "PNG16_Adam7", "L", f"{gray10icc} -define png:bit-depth=16 -type Grayscale -interlace PNG $1", "png", True),
 
     ("RGB", "JPEG", "RGB", f"{cjpeg} -outfile $2.jpg -rgb $1"),
     ("YCbCr444 gbr", "JPEG", "RGB", f"{gbricc} $2.jpg", "png", False),
@@ -257,7 +274,8 @@ formats = [
 #print(len(formats))
 #exit()
 
-for i, fs in enumerate(formats, 0):
+for i, fs in enumerate(formats[0:32], 0):
+  print(fs)
   if len(fs) == 6:
     [color, fmt, colormode, cmd, ext, keep] = fs
   else:
@@ -279,8 +297,15 @@ for i, fs in enumerate(formats, 0):
   if scale < 0.8:
     draw.text((h, h + 1024 * scale), "small", fill=(0, 0, 0), font=font2)
 
-  im.convert(colormode).save(os.path.join(outfolder, f"{i:03d}.{ext}"))
-  #os.path.join(outfolder, f"{fmt}.{color}{small}.{ext}"))
+  if "PNG32" in fmt or "PNG16" in fmt:
+    im = np.array(im.convert("LA").convert("RGBA")).astype(np.uint8)
+    im = (im.astype(np.float32) / 255) * 65535
+    im = im.astype(np.uint16)
+    print(im.dtype)
+    cv2.imwrite(os.path.join(outfolder, f"{i:03d}.{ext}"), im)
+  else:
+    im.convert(colormode).save(os.path.join(outfolder, f"{i:03d}.{ext}"))
+    #os.path.join(outfolder, f"{fmt}.{color}{small}.{ext}"))
 
   if cmd:
     cmdr = cmd.replace("$1", os.path.join(outfolder, f"\"{i:03d}.{ext}\""))
