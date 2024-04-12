@@ -10,7 +10,7 @@ cjpeg = "~/encoding/mozjpeg/build/cjpeg -quality 99 -progressive"
 outfolder = "images"
 
 gbricc = "magick $1 +profile icm -profile icc/sRGB.icm -profile icc/gbr.icc"
-gray10icc = 'magick $1 +profile icm -profile "icc/Gray Gamma 22.icc" -profile "icc/Gray Gamma 10.icc"'
+gray10icc = 'magick $1 +profile icm -profile "icc/sRGB-Gray.icc" -profile "icc/Gray Gamma 10.icc"'
 
 scale = 1023 / 4096  #1
 #scale = 1  #1
@@ -274,7 +274,7 @@ formats = [
 #print(len(formats))
 #exit()
 
-for i, fs in enumerate(formats[0:32], 0):
+for i, fs in enumerate(formats, 0):
   print(fs)
   if len(fs) == 6:
     [color, fmt, colormode, cmd, ext, keep] = fs
@@ -301,7 +301,6 @@ for i, fs in enumerate(formats[0:32], 0):
     im = np.array(im.convert("LA").convert("RGBA")).astype(np.uint8)
     im = (im.astype(np.float32) / 255) * 65535
     im = im.astype(np.uint16)
-    print(im.dtype)
     cv2.imwrite(os.path.join(outfolder, f"{i:03d}.{ext}"), im)
   else:
     im.convert(colormode).save(os.path.join(outfolder, f"{i:03d}.{ext}"))
